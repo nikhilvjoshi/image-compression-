@@ -174,8 +174,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // --- Main File Handling Logic (validation, preview, queueing) ---
-    async function handleFiles(files) { // Made async to await FileReader promises
-        // Reset UI when a new batch of files is introduced
+    async function handleFiles(files) {
         compressedOutputSection.style.display = 'none';
         processingQueueSection.style.display = 'none';
         resultsContainer.innerHTML = '';
@@ -186,8 +185,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         let newFilesPromises = []; // To hold promises for FileReader results
 
-        // FIX: Add index 'i' to the forEach callback and rely only on DataURLs
-        [...files].forEach((file, i) => { // <-- Corrected line
+        // Rely only on DataURLs
+        [...files].forEach((file) => { // Removed 'i' as it's no longer used for imageId
             if (!(file.type === 'image/jpeg' || file.type === 'image/jpg')) {
                 alert(`File "${file.name}" is not a JPEG image and will be ignored.`);
                 console.warn(`Skipping non-JPEG file: ${file.name}`);
@@ -466,6 +465,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // Wait for originalUrl to be ready for this specific file
             let originalDataUrl = null;
             try {
+                // originalUrlPromise is now a promise from FileReader directly
                 originalDataUrl = await fileEntry.originalUrlPromise; 
                 fileEntry.originalUrl = originalDataUrl; // Set it definitively on fileEntry
                 if (fileEntry.status !== 'failed') { // If FileReader already failed, don't override status
@@ -555,7 +555,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const imgWrapper = canvasElement.closest('.img-wrapper'); // Get the parent wrapper
 
         // Clear previous state
-        ctx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+        ctx.clearRect(0, 0, canvasElement.width, canvasElement.height); // Clear canvas
         imgWrapper.classList.add('loading'); // Show loading state
         imgWrapper.classList.remove('error');
         imgWrapper.querySelector('.loading-text').textContent = 'Loading...';
@@ -568,7 +568,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 imgWrapper.classList.remove('loading');
                 imgWrapper.querySelector('.loading-text').textContent = 'URL N/A';
                 imgWrapper.querySelector('.loading-text').style.display = 'block';
-                // Optionally draw error text directly on canvas
+                // Draw error text directly on canvas
                 ctx.fillStyle = '#dc3545';
                 ctx.font = '16px sans-serif';
                 ctx.textAlign = 'center';
@@ -579,30 +579,33 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             const img = new Image();
-            img.crossOrigin = "anonymous";
+            img.crossOrigin = "anonymous"; // Needed for drawing external images on canvas, even Data URLs sometimes (safe to leave)
             img.src = imageUrl;
 
             img.onload = () => {
-                // Set canvas dimensions to the wrapper's client dimensions, or original image dimensions
-                // For thumbnails, we want them to fit the 200x150 container.
-                // For modal, it's different.
+                console.log(`[loadImageToCanvasDisplay] Image "${altText}" (ID: ${fileEntryId}) loaded into Image object for canvas.`);
+                if (img.naturalWidth === 0 || img.naturalHeight === 0) {
+                    console.error(`[loadImageToCanvasDisplay] Image "${altText}" (ID: ${fileEntryId}) loaded but has zero dimensions. Cannot draw.`);
+                    reject(new Error(`Image "${altText}" has zero dimensions.`));
+                    return;
+                }
+                
+                // Determine target dimensions for drawing on canvas
+                // For thumbnail canvases, set them to fixed size
                 const maxThumbWidth = 200;
                 const maxThumbHeight = 150;
 
                 let drawWidth = img.naturalWidth;
                 let drawHeight = img.naturalHeight;
 
-                // Determine target dimensions for drawing on canvas
                 if (canvasElement.classList.contains('modal-canvas')) { // It's the large modal canvas
                     canvasElement.width = img.naturalWidth;
                     canvasElement.height = img.naturalHeight;
-                } else { // It's a thumbnail canvas
-                    // Scale down to fit thumbnail wrapper maintaining aspect ratio
-                    if (drawWidth > maxThumbWidth || drawHeight > maxThumbHeight) {
-                        const ratio = Math.min(maxThumbWidth / drawWidth, maxThumbHeight / drawHeight);
-                        drawWidth *= ratio;
-                        drawHeight *= ratio;
-                    }
+                } else { // It's a thumbnail canvas (fixed size)
+                    // Scale image to fit thumbnail wrapper maintaining aspect ratio
+                    const ratio = Math.min(maxThumbWidth / drawWidth, maxThumbHeight / drawHeight);
+                    drawWidth *= ratio;
+                    drawHeight *= ratio;
                     canvasElement.width = maxThumbWidth; // Set canvas size to match wrapper
                     canvasElement.height = maxThumbHeight;
                 }
@@ -632,11 +635,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 resolve(false); // Indicate failure
             };
 
-            // Handle cached images
-            if (img.complete && img.naturalWidth !== 0 && img.naturalHeight !== 0) {
-                setTimeout(() => img.onload(), 0); 
-            } else if (img.complete && (img.naturalWidth === 0 || img.naturalHeight === 0)) {
-                setTimeout(() => img.onerror(new Event('error')), 0); // Trigger error if cached and invalid
+            // Handle cached images: Trigger onload/onerror manually if already complete
+            if (img.complete) {
+                if (img.naturalWidth === 0 || img.naturalHeight === 0) {
+                    setTimeout(() => img.onerror(new Event('error')), 0); // Trigger error if cached and invalid
+                } else {
+                    setTimeout(() => img.onload(), 0); // Trigger onload if cached and valid
+                }
             }
         });
     }
@@ -737,7 +742,7 @@ document.addEventListener('DOMContentLoaded', () => {
         loadingTextCompressed.style.display = 'none';
         originalCanvas.style.display = 'none'; 
         compressedCanvas.style.display = 'none'; 
-        if (imgComparisonOverlay) imgComparisonOverlay.style.display = 'none';
+        if (imgComparisonOverlay) imgComparisonOverlay.style.display = 'none'; // Hide overlay by default
 
 
         if (fileEntry.status === 'completed') {
@@ -1034,8 +1039,20 @@ document.addEventListener('DOMContentLoaded', () => {
             alert('No compressed images to download!');
             return;
         }
-        alert(`Simulating download of all ${completedFiles.length} compressed images.
-        (In a real app, this would typically initiate a ZIP file download from the server of only completed files.)`);
+        // Iterate through completed files and generate download links if they are Data URLs
+        completedFiles.forEach(fileEntry => {
+            if (fileEntry.compressedUrl && fileEntry.compressedUrl.startsWith('data:')) {
+                const link = document.createElement('a');
+                link.href = fileEntry.compressedUrl;
+                link.download = `compressed_${fileEntry.file.name}`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            } else {
+                console.warn(`Cannot download "${fileEntry.file.name}": Compressed URL is not a Data URL or is missing.`);
+            }
+        });
+        alert(`Initiating download for ${completedFiles.length} compressed images.`);
     });
 
     clearQueueButton.addEventListener('click', () => {
