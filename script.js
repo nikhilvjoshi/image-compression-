@@ -211,7 +211,7 @@ document.addEventListener('DOMContentLoaded', () => {
         let newFilesPromises = []; // To hold promises for FileReader results
 
         // FIX: Add index 'i' to the forEach callback
-        [...files].forEach((file, i) => { // <-- Changed this line
+        [...files].forEach((file, i) => { // <-- Changed this line to include 'i'
             if (!(file.type === 'image/jpeg' || file.type === 'image/jpg')) {
                 alert(`File "${file.name}" is not a JPEG image and will be ignored.`);
                 console.warn(`Skipping non-JPEG file: ${file.name}`);
@@ -234,7 +234,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             // Generate a unique ID for this image (e.g., from picsum.photos)
-            const imageId = Math.floor(Math.random() * 1000) + i; // i ensures different image for each file
+            const imageId = Math.floor(Math.random() * 1000) + i; // 'i' is now defined
 
             const fileEntry = {
                 file: file,
@@ -372,8 +372,6 @@ document.addEventListener('DOMContentLoaded', () => {
             fileEntry.status = 'queued'; // Reset status for potential re-runs
             fileEntry.compressedSize = null; // Clear previous compressed size
             
-            // This now sets up the initial row and also calls updateImagePairResult
-            // which will handle displaying original image if originalUrl is ready.
             createImagePairResult(fileEntry); 
         }
 
@@ -416,7 +414,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     const simulatedCompressedSize = fileEntry.originalSize * (1 - simulatedReductionRatio);
 
                     fileEntry.compressedSize = Math.max(1, Math.round(simulatedCompressedSize));
-                    // fileEntry.originalUrl and fileEntry.compressedUrl are already set by handleFiles
                     fileEntry.status = 'completed';
                     
                 } catch (error) {
@@ -443,21 +440,126 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log("Compression batch completed.");
     }
 
+    // --- Helper function to load image onto a canvas for display ---
+    // This is now used for both original and compressed thumbnails on the main page,
+    // and for the modal.
+    async function loadImageToCanvasDisplay(canvasElement, imageUrl, altText, fileEntryId) {
+        const ctx = canvasElement.getContext('2d');
+        const imgWrapper = canvasElement.closest('.img-wrapper'); // Get the parent wrapper
+
+        // Clear previous state
+        ctx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+        imgWrapper.classList.add('loading'); // Show loading state
+        imgWrapper.classList.remove('error');
+        imgWrapper.querySelector('.loading-text').textContent = 'Loading...';
+        imgWrapper.querySelector('.loading-text').style.display = 'block';
+
+        return new Promise((resolve, reject) => {
+            if (!imageUrl || imageUrl === '') {
+                console.warn(`[loadImageToCanvasDisplay] No image URL provided for ${altText} (ID: ${fileEntryId}). Displaying error.`);
+                imgWrapper.classList.add('error');
+                imgWrapper.classList.remove('loading');
+                imgWrapper.querySelector('.loading-text').textContent = 'URL N/A';
+                imgWrapper.querySelector('.loading-text').style.display = 'block';
+                // Optionally draw error text directly on canvas
+                ctx.fillStyle = '#dc3545';
+                ctx.font = '16px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('Image N/A', canvasElement.width / 2, canvasElement.height / 2);
+                resolve(false); // Indicate failure to load
+                return;
+            }
+
+            const img = new Image();
+            img.crossOrigin = "anonymous";
+            img.src = imageUrl;
+
+            img.onload = () => {
+                // Set canvas dimensions to the wrapper's client dimensions, or original image dimensions
+                // For thumbnails, we want them to fit the 200x150 container.
+                // For modal, it's different.
+                const wrapperRect = imgWrapper.getBoundingClientRect();
+                canvasElement.width = wrapperRect.width > 0 ? wrapperRect.width : img.naturalWidth;
+                canvasElement.height = wrapperRect.height > 0 ? wrapperRect.height : img.naturalHeight;
+
+                // Ensure a reasonable max size for thumbnails if original is huge.
+                const maxThumbWidth = 200;
+                const maxThumbHeight = 150;
+
+                let drawWidth = img.naturalWidth;
+                let drawHeight = img.naturalHeight;
+
+                // Scale down to fit thumbnail wrapper maintaining aspect ratio
+                if (drawWidth > maxThumbWidth || drawHeight > maxThumbHeight) {
+                    const ratio = Math.min(maxThumbWidth / drawWidth, maxThumbHeight / drawHeight);
+                    drawWidth *= ratio;
+                    drawHeight *= ratio;
+                }
+                
+                // For modal, it takes full available space in CSS. Just set canvas dimensions to original.
+                if (canvasElement.id === 'modalCanvas') {
+                    canvasElement.width = img.naturalWidth;
+                    canvasElement.height = img.naturalHeight;
+                    // Ensure the modal canvas itself takes up visual space based on its content
+                    canvasElement.style.maxWidth = '100%';
+                    canvasElement.style.maxHeight = '100%';
+                    canvasElement.style.objectFit = 'contain';
+                } else { // For thumbnails
+                    // Ensure canvas is exactly the thumbnail size
+                    canvasElement.width = maxThumbWidth;
+                    canvasElement.height = maxThumbHeight;
+                }
+
+                // Center the image within the canvas if it's smaller
+                const offsetX = (canvasElement.width - drawWidth) / 2;
+                const offsetY = (canvasElement.height - drawHeight) / 2;
+
+                ctx.clearRect(0, 0, canvasElement.width, canvasElement.height); // Clear previous content
+                ctx.drawImage(img, offsetX, offsetY, drawWidth, drawHeight);
+                
+                imgWrapper.classList.remove('loading');
+                imgWrapper.querySelector('.loading-text').style.display = 'none'; // Hide loading text
+                resolve(true); // Indicate success
+            };
+
+            img.onerror = (error) => {
+                console.error(`[loadImageToCanvasDisplay] Error loading image for canvas display: "${altText}" (ID: ${fileEntryId}, URL: ${imageUrl}). Error:`, error);
+                imgWrapper.classList.add('error');
+                imgWrapper.classList.remove('loading');
+                imgWrapper.querySelector('.loading-text').textContent = 'Load Error';
+                imgWrapper.querySelector('.loading-text').style.display = 'block';
+                ctx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+                ctx.fillStyle = '#ffe6e6'; ctx.fillRect(0, 0, canvasElement.width, canvasElement.height);
+                ctx.fillStyle = '#dc3545'; ctx.font = '16px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                ctx.fillText('Image Failed', canvasElement.width / 2, canvasElement.height / 2);
+                resolve(false); // Indicate failure
+            };
+
+            // Handle cached images
+            if (img.complete && img.naturalWidth !== 0 && img.naturalHeight !== 0) {
+                setTimeout(() => img.onload(), 0); 
+            } else if (img.complete && (img.naturalWidth === 0 || img.naturalHeight === 0)) {
+                setTimeout(() => img.onerror(new Event('error')), 0); // Trigger error if cached and invalid
+            }
+        });
+    }
+
+
     // --- Creates the initial HTML structure for an image's side-by-side result display ---
     function createImagePairResult(fileEntry) {
         const imagePairRow = document.createElement('div');
         imagePairRow.classList.add('image-pair-row');
         imagePairRow.setAttribute('data-id', fileEntry.id);
-        imagePairRow.setAttribute('data-status', fileEntry.status); // Initial status
+        imagePairRow.setAttribute('data-status', fileEntry.status);
 
-        // Original Image Box
+        // Original Image Box (now with canvas)
         const originalBox = document.createElement('div');
         originalBox.classList.add('image-display-box', 'original');
         originalBox.innerHTML = `
             <h4>Original</h4>
             <div class="img-wrapper loading">
-                <img src="${fileEntry.originalUrl || ''}" alt="${fileEntry.file.name}" style="display: none;">
-                <span class="loading-text">Loading Original...</span>
+                <canvas class="thumbnail-canvas"></canvas> <span class="loading-text">Loading Original...</span>
             </div>
             <div class="file-stats">
                 <span class="file-name-display">${fileEntry.file.name}</span>
@@ -466,14 +568,13 @@ document.addEventListener('DOMContentLoaded', () => {
         `;
         imagePairRow.appendChild(originalBox);
 
-        // Compressed Image Box (Static Thumbnail with Click-to-Compare Overlay)
+        // Compressed Image Box (Static Thumbnail with Click-to-Compare Overlay - now with canvas)
         const compressedBox = document.createElement('div');
         compressedBox.classList.add('image-display-box', 'compressed');
         compressedBox.innerHTML = `
             <h4>Compressed</h4>
             <div class="img-wrapper loading">
-                <img src="${fileEntry.compressedUrl || ''}" alt="Compressed Image" style="display: none;">
-                <span class="loading-text">Processing...</span>
+                <canvas class="thumbnail-canvas"></canvas> <span class="loading-text">Processing...</span>
                 <div class="img-comparison-overlay">Click to Compare</div>
             </div>
             <div class="file-stats">
@@ -523,10 +624,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const compressedImgWrapper = row.querySelector('.image-display-box.compressed .img-wrapper');
 
         // Get elements for direct manipulation
-        const originalImg = originalImgWrapper.querySelector('img');
+        const originalCanvas = originalImgWrapper.querySelector('.thumbnail-canvas');
         const loadingTextOriginal = originalImgWrapper.querySelector('.loading-text');
 
-        const compressedThumbnailImg = compressedImgWrapper.querySelector('img'); // This is the static thumbnail img
+        const compressedCanvas = compressedImgWrapper.querySelector('.thumbnail-canvas');
         const loadingTextCompressed = compressedImgWrapper.querySelector('.loading-text');
         const imgComparisonOverlay = compressedImgWrapper.querySelector('.img-comparison-overlay');
 
@@ -538,30 +639,11 @@ document.addEventListener('DOMContentLoaded', () => {
         compressedImgWrapper.classList.remove('loading', 'error');
         loadingTextOriginal.style.display = 'none';
         loadingTextCompressed.style.display = 'none';
-        originalImg.style.display = 'none'; // Hidden by default
-        compressedThumbnailImg.style.display = 'none'; // Hidden by default
-        if (imgComparisonOverlay) imgComparisonOverlay.style.display = 'none'; // Hide overlay by default
+        // Canvases are always display: block; we draw/clear them.
+        originalCanvas.style.display = 'block';
+        compressedCanvas.style.display = 'block';
 
-
-        // Attach/re-attach error handlers for direct image loading (CRITICAL for debugging)
-        originalImg.onerror = () => {
-            console.error(`[updateImagePairResult] Image Load Error: Original thumbnail failed for "${fileEntry.file.name}" (ID: ${fileEntry.id}).`);
-            originalImgWrapper.classList.add('error');
-            loadingTextOriginal.textContent = 'Error Original Image.';
-            loadingTextOriginal.style.display = 'block';
-            originalImg.style.display = 'none'; // Hide img
-            fileEntry.status = 'failed';
-            updateImagePairResult(fileEntry); // Recursive update to failed state
-        };
-        compressedThumbnailImg.onerror = () => {
-            console.error(`[updateImagePairResult] Image Load Error: Compressed thumbnail failed for "${fileEntry.file.name}" (ID: ${fileEntry.id}).`);
-            compressedImgWrapper.classList.add('error');
-            loadingTextCompressed.textContent = 'Error Compressed Image.';
-            loadingTextCompressed.style.display = 'block';
-            compressedThumbnailImg.style.display = 'none'; // Hide img
-            fileEntry.status = 'failed';
-            updateImagePairResult(fileEntry); // Recursive update to failed state
-        };
+        if (imgComparisonOverlay) imgComparisonOverlay.style.display = 'none';
 
 
         if (fileEntry.status === 'completed') {
@@ -573,27 +655,23 @@ document.addEventListener('DOMContentLoaded', () => {
             reductionDisplay.textContent = `${compressionRatio.toFixed(1)}%`;
             downloadSingleBtn.removeAttribute('disabled');
 
-            // Display original image
+            // Display original image on its canvas
             if (fileEntry.originalUrl) {
-                originalImg.src = fileEntry.originalUrl;
-                originalImg.alt = fileEntry.file.name;
-                originalImg.style.display = 'block'; 
+                loadImageToCanvasDisplay(originalCanvas, fileEntry.originalUrl, fileEntry.file.name, fileEntry.id);
             } else {
                  console.error(`[updateImagePairResult] CRITICAL: Original URL missing for ID: ${fileEntry.id} on completion. Cannot display original. Marking as error.`);
                  originalImgWrapper.classList.add('error');
                  loadingTextOriginal.textContent = 'Original data missing.';
                  loadingTextOriginal.style.display = 'block';
-                 originalImg.style.display = 'none';
+                 originalCanvas.style.display = 'none';
                  fileEntry.status = 'failed';
                  updateImagePairResult(fileEntry);
                  return;
             }
 
-            // Display compressed thumbnail (static view)
+            // Display compressed thumbnail on its canvas
             if (fileEntry.compressedUrl) {
-                compressedThumbnailImg.src = fileEntry.compressedUrl; 
-                compressedThumbnailImg.alt = `Compressed ${fileEntry.file.name}`;
-                compressedThumbnailImg.style.display = 'block'; // Show the compressed image
+                loadImageToCanvasDisplay(compressedCanvas, fileEntry.compressedUrl, `Compressed ${fileEntry.file.name}`, fileEntry.id);
                 
                 // Show click-to-compare overlay for the thumbnail
                 if (imgComparisonOverlay) {
@@ -606,7 +684,7 @@ document.addEventListener('DOMContentLoaded', () => {
                  compressedImgWrapper.classList.add('error');
                  loadingTextCompressed.textContent = 'Image data missing.';
                  loadingTextCompressed.style.display = 'block';
-                 compressedThumbnailImg.style.display = 'none';
+                 compressedCanvas.style.display = 'none';
                  downloadSingleBtn.setAttribute('disabled', 'true');
                  fileEntry.status = 'failed';
                  updateImagePairResult(fileEntry);
@@ -623,26 +701,24 @@ document.addEventListener('DOMContentLoaded', () => {
             originalImgWrapper.classList.add('error');
             loadingTextOriginal.textContent = 'Error Original Image.';
             loadingTextOriginal.style.display = 'block';
-            originalImg.style.display = 'none';
+            originalCanvas.style.display = 'none';
 
             compressedImgWrapper.classList.add('error');
             loadingTextCompressed.textContent = 'Error Processing Image.';
             loadingTextCompressed.style.display = 'block';
-            compressedThumbnailImg.src = '';
-            compressedThumbnailImg.style.display = 'none';
+            compressedCanvas.style.display = 'none';
 
         } else { // 'queued' or 'processing'
             originalImgWrapper.classList.add('loading');
             loadingTextOriginal.textContent = 'Loading Original...';
             loadingTextOriginal.style.display = 'block';
-            originalImg.src = fileEntry.originalUrl || '';
-            originalImg.style.display = 'none';
+            // Canvases are always present, their content is cleared/drawn over
+            originalCanvas.style.display = 'block'; // Ensure canvas is visible
 
             compressedImgWrapper.classList.add('loading');
             loadingTextCompressed.textContent = 'Processing...';
             loadingTextCompressed.style.display = 'block';
-            compressedThumbnailImg.src = '';
-            compressedThumbnailImg.style.display = 'none';
+            compressedCanvas.style.display = 'block'; // Ensure canvas is visible
         }
     }
 
@@ -748,9 +824,32 @@ document.addEventListener('DOMContentLoaded', () => {
             drawComparison(initialX);
         });
 
-        // Expose loadImage function to showModalComparison
-        container.loadImage = loadImagesForCanvas;
-        // Also expose drawComparison for initial setup after load
+        // This function draws the comparison onto the canvas
+        const drawComparison = (sliderX) => {
+            if (!modalOriginalImage.naturalWidth || !modalCompressedImage.naturalWidth) {
+                // Should not happen if images loaded promises resolved, but a fallback
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = '#f0f0f0'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = '#666'; ctx.font = '20px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                ctx.fillText('Image Data Missing', canvas.width / 2, canvas.height / 2);
+                return;
+            }
+
+            // Draw the full original image
+            ctx.drawImage(modalOriginalImage, 0, 0, canvas.width, canvas.height);
+
+            // Draw the compressed image, clipped to the right of the slider
+            // This is the "AFTER" part of the comparison
+            const sourceX = sliderX; // Start drawing from sliderX
+            const sourceWidth = canvas.width - sliderX; // Width to draw from compressed image
+
+            if (sourceWidth > 0 && sourceX < canvas.width) {
+                 ctx.drawImage(modalCompressedImage, 
+                               sourceX, 0, sourceWidth, canvas.height, // Source rectangle (from compressed image)
+                               sourceX, 0, sourceWidth, canvas.height); // Destination rectangle (on visible canvas)
+            }
+        };
+        // Expose drawComparison for initial setup after load
         container.drawComparison = drawComparison;
     }
 
@@ -771,8 +870,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Load images for the canvas comparison
         try {
-            // Load original image (for left side) and compressed image (for right side)
-            // These are the images that will be drawn onto the canvas for the comparison effect
             await Promise.all([
                 new Promise(resolve => { modalOriginalImage.onload = () => resolve(); modalOriginalImage.onerror = () => { console.error("Modal Original Image Load Fail"); modalOriginalImage.src = FALLBACK_IMAGE_URL; resolve(); }; modalOriginalImage.crossOrigin = "anonymous"; modalOriginalImage.src = fileEntry.originalUrl; }),
                 new Promise(resolve => { modalCompressedImage.onload = () => resolve(); modalCompressedImage.onerror = () => { console.error("Modal Compressed Image Load Fail"); modalCompressedImage.src = FALLBACK_IMAGE_URL; resolve(); }; modalCompressedImage.crossOrigin = "anonymous"; modalCompressedImage.src = fileEntry.compressedUrl; })
@@ -811,7 +908,6 @@ document.addEventListener('DOMContentLoaded', () => {
         modalCtx.clearRect(0, 0, modalCanvas.width, modalCanvas.height);
         modalSlider.style.left = '50%';
         modalComparisonContainer.dataset.sliderInitialized = 'false'; // Allow re-initialization on next open
-        // Images (modalOriginalImage, modalCompressedImage) stay loaded in memory, which is efficient.
     }
 
     // --- Event Listeners for Modal ---
