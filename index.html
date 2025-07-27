@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JPEG Compressor</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>JPEG Image Compressor</h1>
+        <p>Drag and drop your JPEG images here, or click to select files.</p>
+
+        <div id="drop-area" class="drop-area">
+            <input type="file" id="fileInput" accept="image/jpeg" multiple style="display: none;">
+            <p>Drag & Drop Images or <span class="browse-files">Browse Files</span></p>
+        </div>
+
+        <div class="compression-settings">
+            <div class="tabs">
+                <button class="tab-button active" data-tab="presets">Presets</button>
+                <button class="tab-button" data-tab="custom">Custom</button>
+            </div>
+
+            <div id="presets-tab-content" class="tab-content active">
+                <p>Choose a common compression setting:</p>
+                <div class="preset-options">
+                    <label class="radio-label">
+                        <input type="radio" name="compressionPreset" value="90" checked>
+                        High Quality (90%)
+                    </label>
+                    <label class="radio-label">
+                        <input type="radio" name="compressionPreset" value="75">
+                        Balanced (75%)
+                    </label>
+                    <label class="radio-label">
+                        <input type="radio" name="compressionPreset" value="60">
+                        Small Size (60%)
+                    </label>
+                    <label class="radio-label">
+                        <input type="radio" name="compressionPreset" value="80">
+                        Web Optimization (80%)
+                    </label>
+                </div>
+            </div>
+
+            <div id="custom-tab-content" class="tab-content">
+                <p>Set your custom compression quality:</p>
+                <div class="custom-quality-control">
+                    <label for="compressionQualitySlider">Quality:</label>
+                    <input type="range" id="compressionQualitySlider" value="75" min="10" max="100" step="1">
+                    <span id="qualityValueDisplay" class="quality-unit">75%</span>
+                </div>
+
+                <div class="advanced-options-section">
+                    <h4>Advanced Options</h4>
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="optimizeForWeb" checked>
+                        Optimize for Web (Progressive JPEG, etc.)
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="removeMetadata" checked>
+                        Remove Metadata (EXIF, Comments)
+                    </label>
+                </div>
+                
+                <p class="note">Higher quality = Larger file size, Less quality = Smaller file size.</p>
+            </div>
+        </div>
+
+        <div id="original-input-section">
+            <h2>Uploaded Images</h2>
+            <ul id="uploaded-file-list" class="uploaded-file-list">
+                </ul>
+        </div>
+
+        <button id="compressButton" class="compress-button" disabled>Compress Images</button>
+        <button id="clearQueueButton" class="clear-queue-button" style="display: none;">Clear All</button>
+
+        <div id="processing-queue-section" style="display: none;">
+            <h2>Processing Queue</h2>
+            <div class="queue-summary">
+                <p>Status: <span id="queueStatus">Idle</span></p>
+                <p>Processed: <span id="processedCount">0</span> / <span id="totalQueueCount">0</span></p>
+                <div class="progress-bar-container">
+                    <div id="queueProgressBar" class="progress-bar"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="compressed-output-section" style="display: none;">
+            <h2>Compression Results</h2>
+            <div id="results-container" class="results-grid">
+                </div>
+            <div class="summary-stats">
+                <h3>Compression Summary</h3>
+                <p>Total Original Size: <span id="totalOriginalSize">0 KB</span></p>
+                <p>Total Compressed Size: <span id="totalCompressedSize">0 KB</span></p>
+                <p>Total Memory Saved: <span id="totalSavedMemory">0 KB</span> (<span id="totalCompressionRatio">0%</span> reduction)</p>
+                <button id="downloadAllButton" class="download-all-button" disabled>Download All Compressed Images</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="comparisonModal" class="modal">
+        <div class="modal-content">
+            <span class="close-button">&times;</span>
+            <h3 id="modalTitle">Image Comparison</h3>
+            <div id="modalComparisonContainer" class="modal-comparison-container">
+                <canvas id="modalCanvas" class="modal-canvas"></canvas>
+                <div class="img-comparison-slider"></div>
+                <span class="comparison-label label-original">Original</span>
+                <span class="comparison-label label-compressed">Compressed</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="container faq-section">
+        <h2>Frequently Asked Questions</h2>
+        <div class="faq-item">
+            <h3>What is image compression?</h3>
+            <p>Image compression is the process of reducing the file size of an image without significantly compromising its visual quality. This makes images load faster on websites, saving bandwidth and improving user experience.</p>
+        </div>
+        <div class="faq-item">
+            <h3>What is the difference between "Quality" and "Small Size" presets?</h3>
+            <p>Our "High Quality" preset (90%) aims to preserve most of the original image detail, resulting in a larger file size but minimal visual artifacts. The "Small Size" preset (60%) prioritizes reducing file size, which might introduce more noticeable compression artifacts but significantly reduces the file size. "Balanced" (75%) strikes a middle ground, while "Web Optimization" (80%) is a good general setting for web use.</p>
+        </div>
+        <div class="faq-item">
+            <h3>What do "Optimize for Web" and "Remove Metadata" options do?</h3>
+            <p>
+                <b>Optimize for Web:</b> This option applies techniques like converting to Progressive JPEG (images load gradually for better perceived performance) and ensuring optimal color profiles for web display, potentially reducing file size further without reducing visual quality.
+                <br>
+                <b>Remove Metadata:</b> Digital images often contain hidden data like camera model, date taken (EXIF data), or even GPS location. Removing this metadata reduces the file size without affecting the image's appearance, and also protects your privacy.
+            </p>
+        </div>
+        <div class="faq-item">
+            <h3>Is image compression lossless or lossy?</h3>
+            <p>Our app primarily uses JPEG compression, which is a **lossy** compression method. This means some image data is permanently removed to achieve smaller file sizes. The goal is to remove redundant or less visually important data. You can control how much data is removed using the quality settings. If you need perfect pixel-for-pixel fidelity (e.g., for technical drawings or medical images), a lossless format like PNG would be preferred, but they result in larger file sizes.</p>
+        </div>
+        <div class="faq-item">
+            <h3>How accurate are the "Saved Memory" and "Compression Ratio" stats?</h3>
+            <p>These statistics are calculated based on the difference between your original image file size and the compressed image file size after processing. They provide a direct measure of how much storage space you've saved and the percentage reduction achieved.</p>
+        </div>
+        <div class="faq-item">
+            <h3>What happens if I upload a very large image?</h3>
+            <p>We have a size limit of 5MB per image to ensure stable processing within the browser and on our backend (if applicable). Images exceeding this limit will be ignored, and you will receive a notification.</p>
+        </div>
+        <div class="faq-item">
+            <h3>How does the "Processing Queue" work?</h3>
+            <p>For large batches of images, our app processes them one by one in a queue. This prevents your browser from freezing and allows us to provide real-time updates on the status of each image ("Queued", "Processing", "Completed", "Failed") and overall progress.</p>
+        </div>
+        <div class="faq-item">
+            <h3>Why do images sometimes fail to compress or display?</h3>
+            <p>Image processing can be complex. Failures can occur due to corrupted original files, very unusual image formats or color profiles, or temporary browser/network issues. Our app will indicate if a file failed and provide error details in the browser's developer console for troubleshooting.</p>
+        </div>
+    </div>
+
+    <div class="container features-section">
+        <h2>Key Features of Our JPEG Compressor</h2>
+        <ul>
+            <li>✨ Intuitive Drag-and-Drop and File Selection Interface</li>
+            <li>🚀 Supports Multiple JPEG File Uploads for Batch Processing</li>
+            <li>📏 Adjustable File Size Limit for Efficient Handling</li>
+            <li>⚙️ Flexible Compression Settings:
+                <ul>
+                    <li>🎨 **Preset Options:** High Quality (90%), Balanced (75%), Small Size (60%), Web Optimization (80%)</li>
+                    <li>🎛️ **Custom Slider:** Fine-tune compression quality from 10% to 100%</li>
+                    <li>🌐 **Advanced Web Optimization:** (e.g., Progressive JPEG) Toggle On/Off</li>
+                    <li>🔐 **Metadata Removal:** Toggle On/Off for privacy and smaller files</li>
+                </ul>
+            </li>
+            <li>📊 Real-time File Size Reduction Statistics and Compression Ratio</li>
+            <li>🔄 Robust Queue Management with Progress Tracking for Large Batches</li>
+            <li>👁️ **Enhanced Visual Assessment (in Modal):** Interactive slider for detailed Before/After quality comparison on a single image</li>
+            <li>⬇️ Individual and Batch Download Options for Compressed Images</li>
+            <li>🧹 "Clear All" Functionality to Reset Uploads</li>
+        </ul>
+    </div>
+
+
+    <script src="script.js"></script>
+</body>
+</html>

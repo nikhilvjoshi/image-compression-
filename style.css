@@ -1,0 +1,926 @@
+/* General Body and Container Styles */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f4f7f6;
+    display: flex;
+    flex-direction: column; /* Allow content to stack */
+    justify-content: flex-start;
+    align-items: center; /* Center content horizontally */
+    min-height: 100vh; /* Full viewport height */
+    margin: 0;
+    padding: 20px;
+    box-sizing: border-box; /* Include padding and border in element's total width and height */
+}
+
+.container {
+    background-color: #ffffff;
+    padding: 40px;
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1); /* Soft shadow for depth */
+    width: 100%;
+    max-width: 1000px; /* Wider container to accommodate side-by-side previews */
+    text-align: center;
+    margin-top: 50px; /* Space from the top of the page */
+    margin-bottom: 30px; /* Space between containers */
+}
+
+/* Headings and Paragraphs */
+h1 {
+    color: #333;
+    margin-bottom: 15px;
+    font-size: 2.2em;
+}
+
+h2 {
+    color: #4CAF50; /* Green accent color */
+    margin-top: 40px;
+    margin-bottom: 20px;
+    font-size: 1.8em;
+    border-bottom: 2px solid #e0e0e0; /* Subtle separator */
+    padding-bottom: 10px;
+}
+
+h3 {
+    color: #555;
+    margin-top: 30px;
+    margin-bottom: 15px;
+    font-size: 1.5em;
+}
+
+h4 { /* Styling for "Original", "Compressed", and "Advanced Options" titles */
+    color: #4CAF50;
+    margin-top: 25px;
+    margin-bottom: 15px;
+    font-size: 1.3em;
+    border-bottom: 1px dashed #e0e0e0; /* Dashed separator */
+    padding-bottom: 8px;
+    display: inline-block; /* Makes border only as wide as the text */
+}
+
+p {
+    color: #666;
+    margin-bottom: 30px;
+    line-height: 1.6; /* Improved readability */
+}
+
+/* Drag and Drop Area */
+.drop-area {
+    border: 3px dashed #a0d9b4; /* Dashed green border */
+    border-radius: 10px;
+    padding: 40px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: background-color 0.3s ease, border-color 0.3s ease;
+    margin-bottom: 30px;
+}
+
+.drop-area.highlight {
+    background-color: #e6ffe6; /* Lighter green when dragged over */
+    border-color: #4CAF50; /* Solid green border when highlighted */
+}
+
+.drop-area p {
+    margin: 0;
+    font-size: 1.1em;
+    color: #555;
+}
+
+.browse-files {
+    color: #007bff; /* Blue for clickable text */
+    font-weight: bold;
+    cursor: pointer;
+    text-decoration: underline;
+}
+
+/* Compression Settings Tabs */
+.compression-settings {
+    margin-top: 20px;
+    margin-bottom: 30px;
+    background-color: #fcfcfc;
+    border: 1px solid #e0e0e0;
+    border-radius: 10px;
+    padding-bottom: 20px;
+}
+
+.tabs {
+    display: flex;
+    justify-content: center; /* Center the tab buttons */
+    margin-bottom: 20px;
+    border-bottom: 1px solid #e0e0e0; /* Separator below tabs */
+}
+
+.tab-button {
+    background-color: transparent;
+    border: none;
+    padding: 15px 25px;
+    font-size: 1.1em;
+    cursor: pointer;
+    transition: background-color 0.3s ease, color 0.3s ease;
+    color: #777;
+    border-bottom: 3px solid transparent; /* Invisible border by default */
+    margin: 0 10px;
+    font-weight: 600;
+}
+
+.tab-button.active {
+    color: #4CAF50; /* Active tab text color */
+    border-bottom-color: #4CAF50; /* Active tab underline */
+    background-color: #f7fdf7; /* Light background for active tab */
+}
+
+.tab-button:hover:not(.active) {
+    background-color: #f0f0f0; /* Hover background for inactive tabs */
+    color: #555;
+}
+
+.tab-content {
+    display: none; /* Hidden by default */
+    padding: 0 20px;
+}
+
+.tab-content.active {
+    display: block; /* Shown when active */
+}
+
+.tab-content p {
+    margin-top: 0;
+    margin-bottom: 20px;
+    color: #555;
+}
+
+/* Preset Options (Radio Buttons) */
+.preset-options {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 15px;
+    margin-top: 20px;
+}
+
+.radio-label {
+    display: flex; /* Align radio and text */
+    align-items: center;
+    background-color: #e6f7ff; /* Light blue background for preset options */
+    border: 1px solid #a8d7f7;
+    border-radius: 8px;
+    padding: 12px 20px;
+    cursor: pointer;
+    transition: background-color 0.3s ease, border-color 0.3s ease;
+    font-size: 1em;
+    color: #333;
+    font-weight: 500;
+}
+
+.radio-label:hover {
+    background-color: #d9efff;
+    border-color: #8cc6ed;
+}
+
+.radio-label input[type="radio"] {
+    margin-right: 10px;
+    -webkit-appearance: none; /* Hide default radio button */
+    -moz-appearance: none;
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    border: 2px solid #007bff; /* Custom border */
+    border-radius: 50%;
+    outline: none;
+    cursor: pointer;
+    position: relative;
+    flex-shrink: 0; /* Prevent shrinking */
+}
+
+.radio-label input[type="radio"]:checked {
+    background-color: #007bff; /* Fill when checked */
+    border-color: #007bff;
+}
+
+.radio-label input[type="radio"]:checked::before {
+    content: '';
+    display: block;
+    width: 10px;
+    height: 10px;
+    background-color: white; /* Inner dot */
+    border-radius: 50%;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+/* Custom Quality Control (Slider) */
+.custom-quality-control {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 15px;
+    margin-top: 20px;
+    margin-bottom: 25px;
+}
+
+.custom-quality-control label {
+    font-size: 1.1em;
+    color: #333;
+    font-weight: 600;
+}
+
+.custom-quality-control input[type="range"] {
+    flex-grow: 1; /* Allow slider to take available space */
+    width: 60%;
+    -webkit-appearance: none; /* Hide default slider styles */
+    height: 8px;
+    background: #d3d3d3;
+    outline: none;
+    opacity: 0.7;
+    transition: opacity .2s;
+    border-radius: 5px;
+}
+
+.custom-quality-control input[type="range"]:hover {
+    opacity: 1;
+}
+
+.custom-quality-control input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 25px;
+    height: 25px;
+    border-radius: 50%;
+    background: #4CAF50; /* Green thumb */
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.custom-quality-control input[type="range"]::-webkit-slider-thumb:hover {
+    background: #45a049;
+}
+
+.custom-quality-control input[type="range"]::-moz-range-thumb {
+    width: 25px;
+    height: 25px;
+    border-radius: 50%;
+    background: #4CAF50;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.custom-quality-control input[type="range"]::-moz-range-thumb:hover {
+    background: #45a049;
+}
+
+.custom-quality-control .quality-unit {
+    font-size: 1.2em;
+    font-weight: bold;
+    color: #555;
+    min-width: 50px;
+    text-align: right;
+}
+
+/* Advanced Options Section (Checkboxes) */
+.advanced-options-section {
+    background-color: #f7f7f7;
+    border: 1px solid #eee;
+    border-radius: 8px;
+    padding: 15px 20px;
+    margin-top: 20px;
+    text-align: left;
+}
+
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+    font-size: 0.95em;
+    color: #444;
+    cursor: pointer;
+}
+
+.checkbox-label:last-child {
+    margin-bottom: 0;
+}
+
+.checkbox-label input[type="checkbox"] {
+    margin-right: 10px;
+    width: 18px;
+    height: 18px;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    background-color: #fff;
+    cursor: pointer;
+    position: relative;
+    flex-shrink: 0;
+}
+
+.checkbox-label input[type="checkbox"]:checked {
+    background-color: #4CAF50;
+    border-color: #4CAF50;
+}
+
+.checkbox-label input[type="checkbox"]:checked::before {
+    content: '\2713'; /* Checkmark symbol */
+    display: block;
+    color: white;
+    font-size: 14px;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    line-height: 1;
+}
+
+.quality-settings .note {
+    font-size: 0.9em;
+    color: #777;
+    margin-top: 15px;
+    margin-bottom: 0;
+}
+
+/* Uploaded File List (Names Only) */
+.uploaded-file-list {
+    list-style: none; /* Remove bullet points */
+    padding: 0;
+    margin: 20px auto; /* Center the list */
+    max-width: 600px; /* Max width for readability */
+    text-align: left;
+    border: 1px solid #eee;
+    border-radius: 8px;
+    background-color: #fcfcfc;
+    max-height: 200px; /* Max height for scrollable list */
+    overflow-y: auto; /* Enable scroll if content overflows */
+}
+
+.uploaded-file-list li {
+    padding: 10px 15px;
+    border-bottom: 1px dashed #eee; /* Separator between items */
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.95em;
+    color: #444;
+}
+
+.uploaded-file-list li:last-child {
+    border-bottom: none; /* No border for the last item */
+}
+
+.uploaded-file-list .file-name {
+    flex-grow: 1; /* Allows name to take up available space */
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis; /* Ellipsis for long names */
+    margin-right: 10px;
+}
+
+/* Remove button for the list items */
+.uploaded-file-list .remove-btn-list {
+    background-color: #dc3545; /* Red for remove */
+    color: white;
+    border: none;
+    border-radius: 5px;
+    width: 25px;
+    height: 25px;
+    font-size: 0.8em;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.uploaded-file-list .remove-btn-list:hover {
+    background-color: #c82333;
+}
+
+/* General Buttons (Compress, Clear All, Download All) */
+.compress-button, .clear-queue-button {
+    background-color: #4CAF50;
+    color: white;
+    padding: 15px 30px;
+    border: none;
+    border-radius: 8px;
+    font-size: 1.1em;
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+    margin-top: 20px;
+    margin-bottom: 40px;
+    margin-right: 10px;
+}
+
+.clear-queue-button {
+    background-color: #dc3545; /* Red for clear */
+}
+
+.clear-queue-button:hover {
+    background-color: #c82333;
+    transform: translateY(-2px);
+}
+
+.compress-button:hover {
+    background-color: #45a049;
+    transform: translateY(-2px);
+}
+
+/* Disabled state for buttons */
+.compress-button:disabled, .clear-queue-button:disabled, .download-all-button:disabled, .download-single-button:disabled {
+    background-color: #cccccc;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.download-all-button {
+    background-color: #007bff;
+    color: white;
+    padding: 12px 25px;
+    border: none;
+    border-radius: 8px;
+    font-size: 1em;
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+    margin-top: 20px;
+}
+
+.download-all-button:hover {
+    background-color: #0056b3;
+    transform: translateY(-2px);
+}
+
+/* Queue Management Section */
+.processing-queue-section {
+    margin-top: 40px;
+    margin-bottom: 30px;
+    background-color: #f8fafd; /* Light blueish background */
+    border: 1px solid #e0e7ff;
+    border-radius: 10px;
+    padding: 20px;
+    text-align: left;
+}
+
+.queue-summary {
+    background-color: #eef2ff;
+    border: 1px solid #d8e0ff;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 20px;
+}
+
+.queue-summary p {
+    margin: 5px 0;
+    font-size: 0.95em;
+    color: #444;
+}
+
+.progress-bar-container {
+    width: 100%;
+    background-color: #e0e0e0;
+    border-radius: 5px;
+    overflow: hidden;
+    height: 15px;
+    margin-top: 10px;
+}
+
+.progress-bar {
+    height: 100%;
+    width: 0%;
+    background-color: #4CAF50; /* Green progress bar */
+    border-radius: 5px;
+    transition: width 0.3s ease-in-out; /* Smooth width transitions */
+}
+
+/* Styles for image items in the results grid */
+.results-grid {
+    display: flex;
+    flex-direction: column; /* Stacks individual image comparison rows vertically */
+    gap: 30px; /* Space between each comparison row */
+    margin-top: 20px;
+    border-top: 1px solid #eee;
+    padding-top: 20px;
+}
+
+.image-pair-row {
+    position: relative; /* For status indicator positioning */
+    display: flex; /* Key: Makes original and compressed boxes side-by-side */
+    justify-content: center; /* Centers the pair if there's extra space */
+    align-items: flex-start; /* Aligns content from the top */
+    gap: 30px; /* Space between the original and compressed display boxes */
+    flex-wrap: wrap; /* Allows wrapping onto the next line on smaller screens */
+    padding-bottom: 20px;
+    border-bottom: 1px dashed #e0e0e0; /* Separator between pairs */
+}
+
+.image-pair-row:last-child {
+    border-bottom: none; /* No border for the last item in the list */
+}
+
+.image-display-box {
+    flex: 1; /* Allows boxes to grow and shrink to fill available space */
+    min-width: 280px; /* Minimum width for each box before wrapping */
+    max-width: 350px; /* Max width to prevent them from becoming too wide on large screens */
+    border: 1px solid #e0e0e0;
+    border-radius: 10px;
+    padding: 15px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05); /* Subtle shadow for visual separation */
+    text-align: left; /* Align text within the box to the left */
+}
+
+.image-display-box.original {
+    background-color: #fcfcfc;
+}
+
+.image-display-box.compressed {
+    background-color: #eaf7ed; /* Light green for compressed box */
+    border-color: #a0d9b4; /* Matching green border */
+}
+
+/* New style for filename within stats section */
+.image-display-box .file-name-display {
+    font-size: 0.9em;
+    font-weight: bold;
+    color: #333;
+    word-wrap: break-word; /* Allow long filenames to wrap within the box */
+    margin-bottom: 8px; /* Space below filename */
+    display: block; /* Ensure it takes full width */
+}
+
+.image-display-box .file-stats p {
+    margin: 5px 0;
+    font-size: 0.9em;
+    color: #444;
+}
+
+.image-display-box .file-stats p strong {
+    color: #222;
+}
+
+.image-display-box .file-stats p .value {
+    font-weight: bold;
+    color: #28a745; /* Green for positive stats (savings) */
+}
+
+.download-single-button {
+    background-color: #007bff; /* Blue for download button */
+    color: white;
+    padding: 10px 18px;
+    border: none;
+    border-radius: 6px;
+    font-size: 0.9em;
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+    margin-top: 15px;
+    width: 100%; /* Make button full width */
+}
+
+.download-single-button:hover {
+    background-color: #0056b3;
+    transform: translateY(-1px);
+}
+
+/* Status indicators for image items */
+.image-pair-row::after {
+    content: attr(data-status); /* Display status text from data-status attribute */
+    position: absolute;
+    top: 5px;
+    left: 5px;
+    padding: 3px 8px;
+    border-radius: 5px;
+    font-size: 0.7em;
+    font-weight: bold;
+    text-transform: uppercase;
+    color: white;
+    z-index: 10; /* Ensure it's on top */
+}
+
+.image-pair-row[data-status="queued"]::after {
+    background-color: #ffc107; /* Yellow */
+}
+
+.image-pair-row[data-status="processing"]::after {
+    background-color: #007bff; /* Blue */
+}
+
+.image-pair-row[data-status="completed"]::after {
+    background-color: #28a745; /* Green */
+}
+
+.image-pair-row[data-status="failed"]::after {
+    background-color: #dc3545; /* Red */
+}
+
+/* Hide download buttons until completed */
+.image-pair-row:not([data-status="completed"]) .download-single-button {
+    display: none;
+}
+
+/* --- Image Wrapper States --- */
+.image-display-box .img-wrapper {
+    width: 200px;
+    height: 150px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+    margin-bottom: 15px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    background-color: #f0f0f0;
+    position: relative;
+    font-size: 0.8em;
+    color: #666;
+    text-align: center;
+    flex-direction: column; /* To stack image and loading text */
+}
+
+.image-display-box .img-wrapper.loading {
+    background-color: #e0f2f7;
+    color: #007bff;
+    font-weight: bold;
+}
+
+.image-display-box .img-wrapper.error {
+    background-color: #ffe6e6;
+    border-color: #dc3545;
+    color: #dc3545;
+    font-weight: bold;
+    padding: 5px;
+    &::before {
+        content: '!';
+        font-size: 3em;
+        margin-right: 0px; /* Adjusted to stack, not side-by-side */
+        line-height: 1;
+        margin-bottom: 5px; /* Space between icon and text */
+    }
+}
+
+.image-display-box .img-wrapper img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    /* Styles for display: none / block are handled by JS directly on element's style */
+}
+
+/* New style for loading/error text inside wrappers */
+.loading-text {
+    position: relative; /* Changed from absolute to flow naturally with flex */
+    top: auto; left: auto; /* Reset positioning */
+    transform: none; /* Reset transform */
+    z-index: 5;
+    background-color: rgba(255, 255, 255, 0.7);
+    padding: 5px 10px;
+    border-radius: 5px;
+    display: none; /* Hidden by default, JS controls visibility */
+    margin-top: 5px; /* Space below image if image is showing */
+}
+
+.image-display-box .img-wrapper.error .loading-text {
+    background-color: transparent;
+}
+
+/* --- IMPORTANT: Hide all comparison slider specific elements for the static thumbnails --- */
+.img-comparison-container,
+.img-comparison-before,
+.img-comparison-after,
+.img-comparison-slider {
+    display: none; /* Hide these by default on the thumbnail level */
+}
+
+/* ONLY show img-comparison-after image within its wrapper for the static compressed thumbnail */
+.image-display-box.compressed .img-wrapper .img-comparison-after img {
+    display: block; /* Show this compressed image */
+    position: static; /* Reset positioning if needed */
+    width: 100%; /* Fill container */
+    height: 100%; /* Fill container */
+}
+
+
+/* New: Click-to-compare overlay for small thumbnails */
+.img-comparison-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.4); /* Semi-transparent overlay */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 4; /* Above images */
+    color: white;
+    font-size: 1.1em;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    text-align: center;
+    padding: 10px;
+    box-sizing: border-box;
+}
+
+.img-comparison-overlay:hover {
+    background-color: rgba(0, 0, 0, 0.5);
+}
+
+.img-comparison-overlay::before {
+    content: '\1F50D'; /* Magnifying glass icon */
+    font-size: 2em;
+    margin-bottom: 5px;
+}
+
+/* Ensure original img-wrapper does not use slider effects */
+.image-display-box.original .img-wrapper .img-comparison-container {
+    display: none;
+}
+.image-display-box.original .img-wrapper img {
+    position: static;
+}
+
+
+/* --- Modal Styles --- */
+.modal {
+    display: none; /* Hidden by default */
+    position: fixed; /* Stay in place */
+    z-index: 1000; /* Sit on top */
+    left: 0;
+    top: 0;
+    width: 100%; /* Full width */
+    height: 100%; /* Full height */
+    overflow: auto; /* Enable scroll if needed */
+    background-color: rgba(0,0,0,0.7); /* Black w/ opacity */
+    justify-content: center; /* Center horizontally */
+    align-items: center; /* Center vertically */
+}
+
+.modal.active {
+    display: flex; /* Show when active */
+}
+
+.modal-content {
+    background-color: #fefefe;
+    margin: auto;
+    padding: 20px;
+    border: 1px solid #888;
+    border-radius: 10px;
+    width: 90%; /* Responsive width */
+    max-width: 95vw; /* Allow wider for comparison */
+    max-height: 95vh; /* Limit height */
+    box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2),0 6px 20px 0 rgba(0,0,0,0.19);
+    position: relative;
+    text-align: center;
+    display: flex; /* Flexbox for title and content */
+    flex-direction: column;
+}
+
+.close-button {
+    color: #aaa;
+    font-size: 28px;
+    font-weight: bold;
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    cursor: pointer;
+    z-index: 1001; /* Ensure close button is clickable */
+}
+
+.close-button:hover,
+.close-button:focus {
+    color: #000;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+#modalTitle {
+    color: #333;
+    margin-top: 0;
+    margin-bottom: 15px; /* Space between title and comparison */
+    flex-shrink: 0; /* Don't let it shrink */
+}
+
+.modal-comparison-container {
+    /* Styles for the comparison slider inside the modal */
+    width: 100%;
+    flex-grow: 1; /* Take all available height */
+    margin: 0 auto; /* No vertical margin, center horizontally */
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    overflow: hidden; /* Important for comparison slider */
+    position: relative; /* For slider elements */
+    background-color: #f0f0f0;
+    min-height: 200px; /* Minimum height for modal slider */
+    max-height: calc(95vh - 100px); /* Adjust based on title/padding */
+
+    /* Ensure comparison elements are displayed within the modal */
+    display: block; /* It holds a canvas, so it's a block container */
+}
+
+/* Styles for the CANVAS inside the modal comparison container */
+.modal-canvas {
+    display: block; /* Make sure canvas is a block element */
+    width: 100%;
+    height: 100%;
+    object-fit: contain; /* Ensure image draws correctly on canvas */
+}
+
+
+/* MODAL: Re-apply comparison slider elements positioning relative to the canvas/container */
+/* The slider and labels need to be absolutely positioned over the canvas */
+.modal-comparison-container .img-comparison-slider {
+    position: absolute; left: 50%; top: 0; bottom: 0; width: 4px;
+    background-color: #4CAF50; cursor: ew-resize; z-index: 3; border-radius: 2px;
+    transform: translateX(-50%);
+    display: block; /* Always visible in modal */
+}
+.modal-comparison-container .img-comparison-slider::before {
+    content: ''; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    width: 20px; height: 20px; background-color: #4CAF50; border: 2px solid #fff; border-radius: 50%;
+}
+
+/* New: Labels for modal comparison slider */
+.modal-comparison-container .comparison-label {
+    position: absolute;
+    font-size: 1.2em;
+    font-weight: bold;
+    color: white;
+    padding: 5px 10px;
+    background-color: rgba(0, 0, 0, 0.5);
+    border-radius: 5px;
+    z-index: 4; /* Above canvas, below slider handle */
+    pointer-events: none; /* Allow clicks to pass through to slider */
+}
+
+.modal-comparison-container .label-original {
+    top: 10px;
+    left: 10px;
+}
+
+.modal-comparison-container .label-compressed {
+    top: 10px;
+    right: 10px;
+}
+
+/* FAQ and Features Sections */
+.faq-section, .features-section {
+    text-align: left;
+    margin-top: 30px;
+    padding: 30px;
+    border-top: 1px solid #eee;
+}
+
+.faq-item {
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 1px dashed #f0f0f0;
+}
+
+.faq-item:last-child {
+    border-bottom: none;
+}
+
+.faq-item h3 {
+    color: #4CAF50;
+    font-size: 1.1em;
+    margin-bottom: 10px;
+    cursor: pointer; /* Indicate it's clickable for potential future accordion */
+}
+
+.faq-item p {
+    font-size: 0.95em;
+    color: #555;
+    margin-bottom: 0; /* Override default paragraph margin */
+    line-height: 1.5;
+}
+
+.features-section ul {
+    list-style: none; /* Remove default bullets */
+    padding: 0;
+    margin-top: 20px;
+}
+
+.features-section ul li {
+    font-size: 1em;
+    color: #333;
+    margin-bottom: 10px;
+    padding-left: 25px; /* Space for custom bullet */
+    position: relative;
+}
+
+.features-section ul li::before {
+    content: '✅'; /* Checkmark emoji as bullet */
+    position: absolute;
+    left: 0;
+    color: #28a745; /* Green checkmark */
+    font-size: 1.2em;
+    line-height: 1;
+}
+
+.features-section ul ul { /* Nested lists for sub-features */
+    margin-top: 5px;
+    margin-bottom: 5px;
+    padding-left: 20px;
+}
+
+.features-section ul ul li::before {
+    content: '➡️'; /* Arrow emoji for sub-bullets */
+    color: #007bff; /* Blue arrow */
+    font-size: 1em;
+}
