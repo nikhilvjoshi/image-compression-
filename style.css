@@ -924,3 +924,323 @@ p {
     color: #007bff; /* Blue arrow */
     font-size: 1em;
 }
+
+/* Fixed size for original and compressed thumbnails */
+.image-display-box .img-wrapper {
+    width: 200px; /* Fixed width for thumbnail */
+    height: 150px; /* Fixed height for thumbnail */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+    margin-bottom: 15px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    background-color: #f0f0f0;
+    position: relative;
+    font-size: 0.8em;
+    color: #666;
+    text-align: center;
+    flex-direction: column; /* To stack image and loading text */
+}
+
+.image-display-box .img-wrapper.loading {
+    background-color: #e0f2f7;
+    color: #007bff;
+    font-weight: bold;
+}
+
+.image-display-box .img-wrapper.error {
+    background-color: #ffe6e6;
+    border-color: #dc3545;
+    color: #dc3545;
+    font-weight: bold;
+    padding: 5px;
+    &::before {
+        content: '!';
+        font-size: 3em;
+        margin-right: 0px; /* Adjusted to stack, not side-by-side */
+        line-height: 1;
+        margin-bottom: 5px; /* Space between icon and text */
+    }
+}
+
+/* Hide img elements within wrappers, as we're using canvas */
+.image-display-box .img-wrapper img {
+    display: none; /* Hide img tags, canvases will be used */
+}
+
+/* Style for canvases within img-wrapper (thumbnails) */
+.thumbnail-canvas {
+    display: block; /* Ensure canvas is a block element */
+    width: 100%; /* Fill the wrapper's dimensions */
+    height: 100%; /* Fill the wrapper's dimensions */
+    background-color: #f0f0f0; /* Default background if image not loaded */
+}
+
+
+/* New style for loading/error text inside wrappers */
+.loading-text {
+    position: relative; /* Changed from absolute to flow naturally with flex */
+    top: auto; left: auto; /* Reset positioning */
+    transform: none; /* Reset transform */
+    z-index: 5;
+    background-color: rgba(255, 255, 255, 0.7);
+    padding: 5px 10px;
+    border-radius: 5px;
+    display: none; /* Hidden by default, JS controls visibility */
+    margin-top: 5px; /* Space below canvas if image is showing */
+}
+
+.image-display-box .img-wrapper.error .loading-text {
+    background-color: transparent;
+}
+
+
+/* --- IMPORTANT: Hide all comparison slider specific elements for the static thumbnails --- */
+/* These were for the old img-based slider on thumbnail. Now using canvas directly */
+.img-comparison-container,
+.img-comparison-before,
+.img-comparison-after,
+.img-comparison-slider {
+    display: none;
+}
+
+/* This rule might not be needed if .img-comparison-container is display:none */
+/* .image-display-box.compressed .img-wrapper .img-comparison-after img {
+    display: block;
+    position: static;
+    width: 100%;
+    height: 100%;
+} */
+
+
+/* New: Click-to-compare overlay for small thumbnails */
+.img-comparison-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.4); /* Semi-transparent overlay */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 4; /* Above canvas */
+    color: white;
+    font-size: 1.1em;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    text-align: center;
+    padding: 10px;
+    box-sizing: border-box;
+}
+
+.img-comparison-overlay:hover {
+    background-color: rgba(0, 0, 0, 0.5);
+}
+
+.img-comparison-overlay::before {
+    content: '\1F50D'; /* Magnifying glass icon */
+    font-size: 2em;
+    margin-bottom: 5px;
+}
+
+/* Ensure original img-wrapper does not use slider effects */
+.image-display-box.original .img-wrapper .img-comparison-container {
+    display: none;
+}
+.image-display-box.original .img-wrapper img {
+    position: static;
+}
+
+
+/* --- Modal Styles --- */
+.modal {
+    display: none; /* Hidden by default */
+    position: fixed; /* Stay in place */
+    z-index: 1000; /* Sit on top */
+    left: 0;
+    top: 0;
+    width: 100%; /* Full width */
+    height: 100%; /* Full height */
+    overflow: auto; /* Enable scroll if needed */
+    background-color: rgba(0,0,0,0.7); /* Black w/ opacity */
+    justify-content: center; /* Center horizontally */
+    align-items: center; /* Center vertically */
+}
+
+.modal.active {
+    display: flex; /* Show when active */
+}
+
+.modal-content {
+    background-color: #fefefe;
+    margin: auto;
+    padding: 20px;
+    border: 1px solid #888;
+    border-radius: 10px;
+    width: 90%; /* Responsive width */
+    max-width: 95vw; /* Allow wider for comparison */
+    max-height: 95vh; /* Limit height */
+    box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2),0 6px 20px 0 rgba(0,0,0,0.19);
+    position: relative;
+    text-align: center;
+    display: flex; /* Flexbox for title and content */
+    flex-direction: column;
+}
+
+.close-button {
+    color: #aaa;
+    font-size: 28px;
+    font-weight: bold;
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    cursor: pointer;
+    z-index: 1001; /* Ensure close button is clickable */
+}
+
+.close-button:hover,
+.close-button:focus {
+    color: #000;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+#modalTitle {
+    color: #333;
+    margin-top: 0;
+    margin-bottom: 15px; /* Space between title and comparison */
+    flex-shrink: 0; /* Don't let it shrink */
+}
+
+.modal-comparison-container {
+    /* Styles for the comparison slider inside the modal */
+    width: 100%;
+    flex-grow: 1; /* Take all available height */
+    margin: 0 auto; /* No vertical margin, center horizontally */
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    overflow: hidden; /* Important for comparison slider */
+    position: relative; /* For slider elements */
+    background-color: #f0f0f0;
+    min-height: 200px; /* Minimum height for modal slider */
+    max-height: calc(95vh - 100px); /* Adjust based on title/padding */
+
+    /* Ensure comparison elements are displayed within the modal */
+    display: block; /* It holds a canvas, so it's a block container */
+}
+
+/* Styles for the CANVAS inside the modal comparison container */
+.modal-canvas {
+    display: block; /* Make sure canvas is a block element */
+    width: 100%;
+    height: 100%;
+    object-fit: contain; /* Ensure image draws correctly on canvas */
+}
+
+
+/* MODAL: Re-apply comparison slider elements positioning relative to the canvas/container */
+/* The slider and labels need to be absolutely positioned over the canvas */
+.modal-comparison-container .img-comparison-slider {
+    position: absolute; left: 50%; top: 0; bottom: 0; width: 4px;
+    background-color: #4CAF50; cursor: ew-resize; z-index: 3; border-radius: 2px;
+    transform: translateX(-50%);
+    display: block; /* Always visible in modal */
+}
+.modal-comparison-container .img-comparison-slider::before {
+    content: ''; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    width: 20px; height: 20px; background-color: #4CAF50; border: 2px solid #fff; border-radius: 50%;
+}
+
+/* New: Labels for modal comparison slider */
+.modal-comparison-container .comparison-label {
+    position: absolute;
+    font-size: 1.2em;
+    font-weight: bold;
+    color: white;
+    padding: 5px 10px;
+    background-color: rgba(0, 0, 0, 0.5);
+    border-radius: 5px;
+    z-index: 4; /* Above canvas, below slider handle */
+    pointer-events: none; /* Allow clicks to pass through to slider */
+}
+
+.modal-comparison-container .label-original {
+    top: 10px;
+    left: 10px;
+}
+
+.modal-comparison-container .label-compressed {
+    top: 10px;
+    right: 10px;
+}
+
+/* FAQ and Features Sections */
+.faq-section, .features-section {
+    text-align: left;
+    margin-top: 30px;
+    padding: 30px;
+    border-top: 1px solid #eee;
+}
+
+.faq-item {
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 1px dashed #f0f0f0;
+}
+
+.faq-item:last-child {
+    border-bottom: none;
+}
+
+.faq-item h3 {
+    color: #4CAF50;
+    font-size: 1.1em;
+    margin-bottom: 10px;
+    cursor: pointer; /* Indicate it's clickable for potential future accordion */
+}
+
+.faq-item p {
+    font-size: 0.95em;
+    color: #555;
+    margin-bottom: 0; /* Override default paragraph margin */
+    line-height: 1.5;
+}
+
+.features-section ul {
+    list-style: none; /* Remove default bullets */
+    padding: 0;
+    margin-top: 20px;
+}
+
+.features-section ul li {
+    font-size: 1em;
+    color: #333;
+    margin-bottom: 10px;
+    padding-left: 25px; /* Space for custom bullet */
+    position: relative;
+}
+
+.features-section ul li::before {
+    content: '✅'; /* Checkmark emoji as bullet */
+    position: absolute;
+    left: 0;
+    color: #28a745; /* Green checkmark */
+    font-size: 1.2em;
+    line-height: 1;
+}
+
+.features-section ul ul { /* Nested lists for sub-features */
+    margin-top: 5px;
+    margin-bottom: 5px;
+    padding-left: 20px;
+}
+
+.features-section ul ul li::before {
+    content: '➡️'; /* Arrow emoji for sub-bullets */
+    color: #007bff; /* Blue arrow */
+    font-size: 1em;
+}
