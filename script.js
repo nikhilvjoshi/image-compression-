@@ -3,7 +3,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const dropArea = document.getElementById('drop-area');
     const fileInput = document.getElementById('fileInput');
     const browseFilesSpan = document.querySelector('.browse-files');
-    const uploadedFileList = document.getElementById('uploaded-file-list'); // List for displaying names
+    const uploadedFileList = document.getElementById('uploaded-file-list');
     const compressButton = document.getElementById('compressButton');
     const clearQueueButton = document.getElementById('clearQueueButton');
 
@@ -39,23 +39,35 @@ document.addEventListener('DOMContentLoaded', () => {
     const closeButton = document.querySelector('.close-button');
     const modalTitle = document.getElementById('modalTitle');
     const modalComparisonContainer = document.getElementById('modalComparisonContainer');
-    const modalCanvas = document.getElementById('modalCanvas'); // Reference to the canvas element
+    const modalCanvas = document.getElementById('modalCanvas');
     const modalCtx = modalCanvas.getContext('2d');
-    const modalSlider = modalComparisonContainer.querySelector('.img-comparison-slider'); // Slider handle
+    const modalSlider = modalComparisonContainer.querySelector('.img-comparison-slider');
     
     // Store loaded images for modal to avoid re-loading
     let modalOriginalImage = new Image();
     let modalCompressedImage = new Image();
 
-    let uploadedFiles = []; // Stores objects: { file, originalUrl:string, originalSize:number, id:string, status:string, compressedUrl:string, compressedSize:number }
+    let uploadedFiles = [];
     let currentQuality;
     let isProcessingQueue = false;
 
     // --- Configuration Constants ---
     const MAX_FILE_SIZE_MB = 5;
     const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
-    const SIMULATED_PROCESSING_DELAY_PER_ITEM_MS = 200; // Shorter delay now that it's client-side processing again
-    // Fallback image for display errors (a tiny transparent pixel)
+    const SIMULATED_PROCESSING_DELAY_PER_ITEM_MS = 500;
+    
+    // !!! FINAL CHANGE HERE !!!
+    // We are now using dynamic, but consistent, placeholder images from picsum.photos.
+    // These are generally CORS-friendly and will reliably load.
+    // The 'id' parameter helps simulate different images.
+    const PLACEHOLDER_ORIGINAL_BASE_URL = 'https://picsum.photos/id/';
+    const PLACEHOLDER_COMPRESSED_BASE_URL = 'https://picsum.photos/id/';
+    const PLACEHOLDER_IMAGE_WIDTH = 200; // For thumbnails
+    const PLACEHOLDER_IMAGE_HEIGHT = 150; // For thumbnails
+    const PLACEHOLDER_MODAL_WIDTH = 800; // For modal
+    const PLACEHOLDER_MODAL_HEIGHT = 600; // For modal
+
+    // Fallback image URL (a tiny transparent pixel) if even placeholders fail
     const FALLBACK_IMAGE_URL = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
 
     // --- Utility Functions (unchanged) ---
@@ -186,29 +198,28 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // --- Main File Handling Logic (validation, preview, queueing) ---
-    async function handleFiles(files) { // Made async to await FileReader promises
-        // Reset UI when a new batch of files is introduced
+    async function handleFiles(files) {
         compressedOutputSection.style.display = 'none';
         processingQueueSection.style.display = 'none';
         resultsContainer.innerHTML = '';
         downloadAllButton.setAttribute('disabled', 'true');
         clearQueueButton.style.display = 'none';
-        uploadedFileList.innerHTML = ''; // Clear the list of uploaded file names
-        uploadedFiles = []; // Clear the internal array of file entries
+        uploadedFileList.innerHTML = '';
+        uploadedFiles = [];
 
-        let newFilesPromises = []; // To hold promises for FileReader results
+        let newFilesPromises = [];
 
-        [...files].forEach(file => {
+        for (const file of files) { // Use for...of to ensure sequential processing or proper error handling
             if (!(file.type === 'image/jpeg' || file.type === 'image/jpg')) {
                 alert(`File "${file.name}" is not a JPEG image and will be ignored.`);
                 console.warn(`Skipping non-JPEG file: ${file.name}`);
-                return;
+                continue; // Use continue to skip to next file in loop
             }
 
             if (file.size > MAX_FILE_SIZE_BYTES) {
                 alert(`File "${file.name}" (${formatBytes(file.size)}) exceeds the maximum allowed size of ${MAX_FILE_SIZE_MB} MB and will be ignored.`);
                 console.warn(`Skipping oversized file: ${file.name} (${formatBytes(file.size)})`);
-                return;
+                continue;
             }
 
             const isDuplicate = uploadedFiles.some(
@@ -217,61 +228,36 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (isDuplicate) {
                 console.warn(`Skipping duplicate file: ${file.name}`);
-                return;
+                continue;
             }
 
-            // Create a promise for reading the file
-            const fileReaderPromise = new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.readAsDataURL(file); // Read local file as Data URL
-                reader.onloadend = () => {
-                    if (reader.result) {
-                        console.log(`[handleFiles] FileReader loaded "${file.name}". Data URL length: ${reader.result.length}.`);
-                        resolve(reader.result);
-                    } else {
-                        console.error(`[handleFiles] FileReader result is empty for "${file.name}".`);
-                        reject(new Error(`Empty FileReader result for ${file.name}.`));
-                    }
-                };
-                reader.onerror = (error) => {
-                    console.error(`[handleFiles] FileReader error for "${file.name}":`, error);
-                    reject(new Error(`FileReader failed for ${file.name}.`));
-                };
-            });
+            // Generate a unique ID for this image (e.g., from picsum.photos)
+            const imageId = Math.floor(Math.random() * 1000) + i; // i ensures different image for each file
 
-            // Create fileEntry object with a promise for originalUrl
             const fileEntry = {
                 file: file,
-                originalUrlPromise: fileReaderPromise, // Store the promise
-                originalUrl: null, // Will be populated when promise resolves
-                originalSize: file.size,
+                // These are now external URLs, derived from picsum.photos
+                originalUrl: `${PLACEHOLDER_ORIGINAL_BASE_URL}${imageId}/${PLACEHOLDER_IMAGE_WIDTH}/${PLACEHOLDER_IMAGE_HEIGHT}`,
+                originalSize: file.size, // Original size from uploaded file
                 id: `file-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
                 status: 'queued',
-                compressedUrl: null, // Will be generated client-side by compressImageClientSide
-                compressedSize: null,
+                compressedUrl: `${PLACEHOLDER_COMPRESSED_BASE_URL}${imageId + 1000}/${PLACEHOLDER_IMAGE_WIDTH}/${PLACEHOLDER_IMAGE_HEIGHT}`, // Different ID for 'compressed' to simulate visual difference
+                compressedSize: null, // Will be simulated by backend logic
             };
             uploadedFiles.push(fileEntry);
             addFileToListDisplay(fileEntry); // Update file list UI immediately
-            
-            // Handle the resolution/rejection of the FileReader promise
-            fileReaderPromise.then(url => {
-                fileEntry.originalUrl = url; // Populate originalUrl when ready
-                updateImagePairResult(fileEntry); // Now update UI with original image
-            }).catch(error => {
-                console.error(`[handleFiles] Failed to load Data URL for "${file.name}":`, error);
-                fileEntry.status = 'failed';
-                fileEntry.originalUrl = FALLBACK_IMAGE_URL; // Use fallback on failure
-                updateImagePairResult(fileEntry);
-            });
+            updateImagePairResult(fileEntry); // Update the row with the newly assigned URLs
 
-            newFilesPromises.push(fileReaderPromise.catch(e => null)); // Add to batch promises
-        });
+            // No need for FileReaderPromise or uploadPromise anymore, as URLs are directly assigned.
+            // All images will be considered "loaded" for their initial display at this point.
+            newFilesPromises.push(Promise.resolve()); // Push a resolved promise to satisfy allSettled.
+        }
 
-        // Wait for all files to be read (successfully or not) before initiating compression
-        await Promise.allSettled(newFilesPromises);
-        console.log("[handleFiles] All FileReader operations settled. Proceeding to initiateCompression.");
-        initiateCompression(); // Always try to initiate compression after initial load phase
-        updateCompressButtonState(); // Re-evaluate button state after initial load
+        await Promise.allSettled(newFilesPromises); // Still wait for all "initial loads" to be processed.
+        console.log("[handleFiles] All file URLs assigned. Proceeding to initiateCompression.");
+        initiateCompression();
+        updateCompressButtonState();
+        fileInput.value = '';
     }
 
     function addFileToListDisplay(fileEntry) {
@@ -350,85 +336,8 @@ document.addEventListener('DOMContentLoaded', () => {
         totalCompressionRatioSpan.textContent = `${overallReduction.toFixed(1)}%`;
     }
 
-    // --- Client-side re-compression for visual comparison (RE-INTRODUCED) ---
-    async function compressImageClientSide(dataUrl, quality, filename) {
-        console.log(`[compressImageClientSide] Attempting to compress "${filename}" at quality ${quality}. DataURL length: ${dataUrl ? dataUrl.length : 'null'}`);
-        return new Promise((resolve, reject) => {
-            if (!dataUrl) {
-                console.error(`[compressImageClientSide] dataUrl is null for "${filename}". Rejecting.`);
-                reject(new Error(`Data URL is null for "${filename}".`));
-                return;
-            }
-
-            const img = new Image();
-            img.crossOrigin = "anonymous"; // Essential for images from other domains if applicable
-            img.src = dataUrl;
-            
-            img.onload = () => {
-                console.log(`[compressImageClientSide] Image "${filename}" (original) loaded into Image object. Dimensions: ${img.naturalWidth}x${img.naturalHeight}`);
-                if (img.naturalWidth === 0 || img.naturalHeight === 0) {
-                    console.error(`[compressImageClientSide] Image "${filename}" loaded but has zero dimensions (${img.naturalWidth}x${img.naturalHeight}). Cannot process.`);
-                    reject(new Error(`Image "${filename}" has zero dimensions.`));
-                    return;
-                }
-                const canvas = document.createElement('canvas');
-                const ctx = canvas.getContext('2d');
-
-                canvas.width = img.naturalWidth;
-                canvas.height = img.naturalHeight;
-
-                try {
-                    ctx.drawImage(img, 0, 0);
-                    console.log(`[compressImageClientSide] Image "${filename}" drawn onto canvas.`);
-                } catch (drawError) {
-                    console.error(`[compressImageClientSide] Error drawing image "${filename}" onto canvas:`, drawError);
-                    reject(new Error(`Failed to draw image "${filename}" onto canvas.`));
-                    return;
-                }
-
-                let compressedDataUrl;
-                try {
-                    compressedDataUrl = canvas.toDataURL('image/jpeg', quality / 100); 
-                    console.log(`[compressImageClientSide] Canvas.toDataURL returned for "${filename}". Length: ${compressedDataUrl.length}`);
-                } catch (toDataURLError) {
-                    console.error(`[compressImageClientSide] Error calling toDataURL for "${filename}":`, toDataURLError);
-                    reject(new Error(`Failed to export canvas for "${filename}".`));
-                    return;
-                }
-                
-                if (compressedDataUrl.length < 50 || compressedDataUrl.startsWith('data:,') || compressedDataUrl.includes('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=')) { 
-                    console.warn(`[compressImageClientSide] Canvas.toDataURL returned potentially blank/invalid data for "${filename}" (quality: ${quality}). Length: ${compressedDataUrl.length}. Trying PNG fallback.`);
-                    try {
-                        const pngDataUrl = canvas.toDataURL('image/png');
-                        if (pngDataUrl.length > 50 && !pngDataUrl.startsWith('data:,')) {
-                             console.warn(`[compressImageClientSide] PNG fallback worked for "${filename}". Resolving with PNG. This suggests a JPEG encoding issue or image format peculiarity.`);
-                             resolve(pngDataUrl);
-                        } else {
-                             reject(new Error(`Canvas.toDataURL returned blank for both JPEG and PNG for "${filename}".`));
-                        }
-                    } catch (pngError) {
-                        console.error(`[compressImageClientSide] Error on PNG fallback for "${filename}":`, pngError);
-                        reject(new Error(`Failed both JPEG and PNG exports for "${filename}".`));
-                    }
-                } else {
-                    resolve(compressedDataUrl);
-                }
-            };
-
-            img.onerror = (error) => {
-                console.error(`[compressImageClientSide] Error loading image "${filename}" into Image object (src: ${dataUrl ? dataUrl.substring(0, 50) : 'null'}...):`, error);
-                reject(new Error(`Failed to load image "${filename}" into Image object.`));
-            };
-
-            if (img.complete) {
-                if (img.naturalWidth === 0 && img.naturalHeight === 0) {
-                     img.onerror(new Event('error')); 
-                } else {
-                    setTimeout(() => img.onload(), 0); 
-                }
-            }
-        });
-    }
+    // --- Client-side re-compression for visual comparison (REMOVED as URLs come from backend concept) ---
+    // This function is no longer needed.
 
     async function initiateCompression() {
         if (isProcessingQueue || uploadedFiles.length === 0) {
@@ -462,10 +371,10 @@ document.addEventListener('DOMContentLoaded', () => {
         // Ensure all UI elements are set to 'queued' state and initial previews are set up
         for (const fileEntry of uploadedFiles) {
             fileEntry.status = 'queued'; // Reset status for potential re-runs
-            fileEntry.compressedUrl = null; // Clear previous compressed data
-            fileEntry.compressedSize = null;
+            fileEntry.compressedSize = null; // Clear previous compressed size
             
-            createImagePairResult(fileEntry); 
+            // Re-create rows here to ensure clean state and show current URLs
+            createImagePairResult(fileEntry);
         }
 
         const quality = currentQuality;
@@ -475,68 +384,32 @@ document.addEventListener('DOMContentLoaded', () => {
         for (let i = 0; i < uploadedFiles.length; i++) {
             const fileEntry = uploadedFiles[i];
 
-            // Wait for originalUrl to be ready for this specific file
-            let originalDataUrl = null;
-            try {
-                originalDataUrl = await fileEntry.originalUrlPromise; 
-                fileEntry.originalUrl = originalDataUrl; // Set it definitively on fileEntry
-                if (fileEntry.status !== 'failed') { // If FileReader already failed, don't override status
-                    updateImagePairResult(fileEntry); // Update UI just in case it needed originalUrl
-                }
-            } catch (loadError) {
-                console.error(`[initiateCompression] Original Data URL load failed for "${fileEntry.file.name}":`, loadError);
-                fileEntry.status = 'failed';
-                fileEntry.originalUrl = FALLBACK_IMAGE_URL; // Ensure it's null if failed
-                updateImagePairResult(fileEntry); // Update UI to failed state
-            }
-
-            // Skip processing if original Data URL couldn't be loaded or file is already failed
-            if (fileEntry.status === 'failed') {
-                console.warn(`Skipping processing for "${fileEntry.file.name}" due to original Data URL load failure.`);
-                processedCount++;
-                updateQueueProgress(processedCount, totalItems);
-                continue; // Move to next file
-            }
-
-            // If file is queued and its originalUrl is ready, proceed with processing
+            // If file is queued, proceed with "compression" (simulated backend processing)
             if (fileEntry.status === 'queued') {
                 fileEntry.status = 'processing';
                 updateImagePairResult(fileEntry); // Update UI to 'processing'
 
-                await new Promise(resolve => setTimeout(resolve, SIMULATED_PROCESSING_DELAY_PER_ITEM_MS));
+                await new Promise(resolve => setTimeout(resolve, SIMULATED_PROCESSING_DELAY_PER_ITEM_MS)); // Simulate backend compression time
 
                 try {
-                    // FIX: Re-introduce client-side compression for the compressed Data URL
-                    const compressedDataUrl = await compressImageClientSide(originalDataUrl, quality, fileEntry.file.name);
-                    
+                    // Simulate backend response for compressed size/ratio
+                    // In a real app, this data would come from your backend.
                     const minAllowedQuality = 10;
                     const maxAllowedQuality = 100;
                     let targetMinReduction = 0.05;
                     let targetMaxReduction = 0.90;
 
-                    if (optimizeForWeb) {
-                        targetMinReduction += 0.02;
-                        targetMaxReduction += 0.02;
-                    }
-                    if (removeMetadata) {
-                        targetMinReduction += 0.01;
-                        targetMaxReduction += 0.01;
-                    }
-
-                    targetMinReduction = Math.min(0.95, targetMinReduction);
-                    targetMaxReduction = Math.min(0.98, targetMaxReduction);
-
+                    // Adjust simulated reduction based on quality
                     const normalizedQuality = (quality - minAllowedQuality) / (maxAllowedQuality - minAllowedQuality);
                     const simulatedReductionRatio = targetMaxReduction - (normalizedQuality * (targetMaxReduction - targetMinReduction));
                     const simulatedCompressedSize = fileEntry.originalSize * (1 - simulatedReductionRatio);
 
                     fileEntry.compressedSize = Math.max(1, Math.round(simulatedCompressedSize));
-                    fileEntry.compressedUrl = compressedDataUrl; // Set from client-side compression
-
+                    // fileEntry.originalUrl and fileEntry.compressedUrl are already set by handleFiles
                     fileEntry.status = 'completed';
                     
                 } catch (error) {
-                    console.error(`Failed to compress or process "${fileEntry.file.name}":`, error);
+                    console.error(`Failed to simulate compression process for "${fileEntry.file.name}":`, error);
                     fileEntry.status = 'failed';
                 }
             } else {
