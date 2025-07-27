@@ -3,7 +3,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const dropArea = document.getElementById('drop-area');
     const fileInput = document.getElementById('fileInput');
     const browseFilesSpan = document.querySelector('.browse-files');
-    const uploadedFileList = document.getElementById('uploaded-file-list');
+    const uploadedFileList = document.getElementById('uploaded-file-list'); // List for displaying names
     const compressButton = document.getElementById('compressButton');
     const clearQueueButton = document.getElementById('clearQueueButton');
 
@@ -39,22 +39,22 @@ document.addEventListener('DOMContentLoaded', () => {
     const closeButton = document.querySelector('.close-button');
     const modalTitle = document.getElementById('modalTitle');
     const modalComparisonContainer = document.getElementById('modalComparisonContainer');
-    const modalCanvas = document.getElementById('modalCanvas');
+    const modalCanvas = document.getElementById('modalCanvas'); // Reference to the canvas element
     const modalCtx = modalCanvas.getContext('2d');
-    const modalSlider = modalComparisonContainer.querySelector('.img-comparison-slider');
+    const modalSlider = modalComparisonContainer.querySelector('.img-comparison-slider'); // Slider handle
     
     // Store loaded images for modal to avoid re-loading
     let modalOriginalImage = new Image();
     let modalCompressedImage = new Image();
 
-    let uploadedFiles = [];
+    let uploadedFiles = []; // Stores objects: { file, originalUrl:string, originalSize:number, id:string, status:string, compressedUrl:string, compressedSize:number }
     let currentQuality;
     let isProcessingQueue = false;
 
     // --- Configuration Constants ---
     const MAX_FILE_SIZE_MB = 5;
     const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
-    const SIMULATED_PROCESSING_DELAY_PER_ITEM_MS = 500;
+    const SIMULATED_PROCESSING_DELAY_PER_ITEM_MS = 500; // Longer delay for realistic backend simulation
     
     // !!! FINAL CHANGE HERE !!!
     // We are now using dynamic, but consistent, placeholder images from picsum.photos.
@@ -198,28 +198,30 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // --- Main File Handling Logic (validation, preview, queueing) ---
-    async function handleFiles(files) {
+    async function handleFiles(files) { // Made async to await FileReader promises
+        // Reset UI when a new batch of files is introduced
         compressedOutputSection.style.display = 'none';
         processingQueueSection.style.display = 'none';
         resultsContainer.innerHTML = '';
         downloadAllButton.setAttribute('disabled', 'true');
         clearQueueButton.style.display = 'none';
-        uploadedFileList.innerHTML = '';
-        uploadedFiles = [];
+        uploadedFileList.innerHTML = ''; // Clear the list of uploaded file names
+        uploadedFiles = []; // Clear the internal array of file entries
 
-        let newFilesPromises = [];
+        let newFilesPromises = []; // To hold promises for FileReader results
 
-        for (const file of files) { // Use for...of to ensure sequential processing or proper error handling
+        // FIX: Add index 'i' to the forEach callback
+        [...files].forEach((file, i) => { // <-- Changed this line
             if (!(file.type === 'image/jpeg' || file.type === 'image/jpg')) {
                 alert(`File "${file.name}" is not a JPEG image and will be ignored.`);
                 console.warn(`Skipping non-JPEG file: ${file.name}`);
-                continue; // Use continue to skip to next file in loop
+                return;
             }
 
             if (file.size > MAX_FILE_SIZE_BYTES) {
                 alert(`File "${file.name}" (${formatBytes(file.size)}) exceeds the maximum allowed size of ${MAX_FILE_SIZE_MB} MB and will be ignored.`);
                 console.warn(`Skipping oversized file: ${file.name} (${formatBytes(file.size)})`);
-                continue;
+                return;
             }
 
             const isDuplicate = uploadedFiles.some(
@@ -228,7 +230,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (isDuplicate) {
                 console.warn(`Skipping duplicate file: ${file.name}`);
-                continue;
+                return;
             }
 
             // Generate a unique ID for this image (e.g., from picsum.photos)
@@ -251,7 +253,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // No need for FileReaderPromise or uploadPromise anymore, as URLs are directly assigned.
             // All images will be considered "loaded" for their initial display at this point.
             newFilesPromises.push(Promise.resolve()); // Push a resolved promise to satisfy allSettled.
-        }
+        });
 
         await Promise.allSettled(newFilesPromises); // Still wait for all "initial loads" to be processed.
         console.log("[handleFiles] All file URLs assigned. Proceeding to initiateCompression.");
@@ -336,9 +338,6 @@ document.addEventListener('DOMContentLoaded', () => {
         totalCompressionRatioSpan.textContent = `${overallReduction.toFixed(1)}%`;
     }
 
-    // --- Client-side re-compression for visual comparison (REMOVED as URLs come from backend concept) ---
-    // This function is no longer needed.
-
     async function initiateCompression() {
         if (isProcessingQueue || uploadedFiles.length === 0) {
             updateCompressButtonState();
@@ -373,8 +372,9 @@ document.addEventListener('DOMContentLoaded', () => {
             fileEntry.status = 'queued'; // Reset status for potential re-runs
             fileEntry.compressedSize = null; // Clear previous compressed size
             
-            // Re-create rows here to ensure clean state and show current URLs
-            createImagePairResult(fileEntry);
+            // This now sets up the initial row and also calls updateImagePairResult
+            // which will handle displaying original image if originalUrl is ready.
+            createImagePairResult(fileEntry); 
         }
 
         const quality = currentQuality;
@@ -399,7 +399,18 @@ document.addEventListener('DOMContentLoaded', () => {
                     let targetMinReduction = 0.05;
                     let targetMaxReduction = 0.90;
 
-                    // Adjust simulated reduction based on quality
+                    if (optimizeForWeb) {
+                        targetMinReduction += 0.02;
+                        targetMaxReduction += 0.02;
+                    }
+                    if (removeMetadata) {
+                        targetMinReduction += 0.01;
+                        targetMaxReduction += 0.01;
+                    }
+
+                    targetMinReduction = Math.min(0.95, targetMinReduction);
+                    targetMaxReduction = Math.min(0.98, targetMaxReduction);
+
                     const normalizedQuality = (quality - minAllowedQuality) / (maxAllowedQuality - minAllowedQuality);
                     const simulatedReductionRatio = targetMaxReduction - (normalizedQuality * (targetMaxReduction - targetMinReduction));
                     const simulatedCompressedSize = fileEntry.originalSize * (1 - simulatedReductionRatio);
@@ -760,6 +771,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Load images for the canvas comparison
         try {
+            // Load original image (for left side) and compressed image (for right side)
+            // These are the images that will be drawn onto the canvas for the comparison effect
             await Promise.all([
                 new Promise(resolve => { modalOriginalImage.onload = () => resolve(); modalOriginalImage.onerror = () => { console.error("Modal Original Image Load Fail"); modalOriginalImage.src = FALLBACK_IMAGE_URL; resolve(); }; modalOriginalImage.crossOrigin = "anonymous"; modalOriginalImage.src = fileEntry.originalUrl; }),
                 new Promise(resolve => { modalCompressedImage.onload = () => resolve(); modalCompressedImage.onerror = () => { console.error("Modal Compressed Image Load Fail"); modalCompressedImage.src = FALLBACK_IMAGE_URL; resolve(); }; modalCompressedImage.crossOrigin = "anonymous"; modalCompressedImage.src = fileEntry.compressedUrl; })
