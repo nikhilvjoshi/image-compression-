@@ -924,7 +924,6 @@ p {
     color: #007bff; /* Blue arrow */
     font-size: 1em;
 }
-
 /* Fixed size for original and compressed thumbnails */
 .image-display-box .img-wrapper {
     width: 200px; /* Fixed width for thumbnail */
@@ -989,7 +988,7 @@ p {
     padding: 5px 10px;
     border-radius: 5px;
     display: none; /* Hidden by default, JS controls visibility */
-    margin-top: 5px; /* Space below canvas if image is showing */
+    margin-top: 5px; /* Space below image if image is showing */
 }
 
 .image-display-box .img-wrapper.error .loading-text {
@@ -1005,15 +1004,6 @@ p {
 .img-comparison-slider {
     display: none;
 }
-
-/* This rule might not be needed if .img-comparison-container is display:none */
-/* .image-display-box.compressed .img-wrapper .img-comparison-after img {
-    display: block;
-    position: static;
-    width: 100%;
-    height: 100%;
-} */
-
 
 /* New: Click-to-compare overlay for small thumbnails */
 .img-comparison-overlay {
