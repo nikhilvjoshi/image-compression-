@@ -57,7 +57,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const SIMULATED_PROCESSING_DELAY_PER_ITEM_MS = 200; // Shorter delay now that it's client-side processing again
     
     // Fallback image for display errors (a tiny transparent pixel)
-    const FALLBACK_IMAGE_URL = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
+    const FALLBACK_IMAGE_DATA_URL = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
 
     // --- Utility Functions (unchanged) ---
 
@@ -81,19 +81,6 @@ document.addEventListener('DOMContentLoaded', () => {
             button.classList.add('active');
             document.getElementById(`${targetTab}-tab-content`).classList.add('active');
 
-            if (targetTab === 'custom') {
-                compressionQualitySlider.value = currentQuality;
-                qualityValueDisplay.textContent = `${currentQuality}%`;
-            } else if (targetTab === 'presets') {
-                const checkedPreset = document.querySelector('input[name="compressionPreset"]:checked');
-                if (checkedPreset) {
-                    currentQuality = parseInt(checkedPreset.value);
-                } else {
-                    currentQuality = 75;
-                    document.querySelector('input[name="compressionPreset"][value="75"]').checked = true;
-                }
-                qualityValueDisplay.textContent = `${currentQuality}%`;
-            }
             if (uploadedFiles.length > 0) {
                 console.log("Triggering compression from tab change.");
                 initiateCompression();
@@ -187,7 +174,8 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // --- Main File Handling Logic (validation, preview, queueing) ---
-    async function handleFiles(files) {
+    async function handleFiles(files) { // Made async to await FileReader promises
+        // Reset UI when a new batch of files is introduced
         compressedOutputSection.style.display = 'none';
         processingQueueSection.style.display = 'none';
         resultsContainer.innerHTML = '';
@@ -198,8 +186,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         let newFilesPromises = []; // To hold promises for FileReader results
 
-        // FIX: Add index 'i' to the forEach callback
-        [...files].forEach((file, i) => { // <-- Changed this line to include 'i'
+        // FIX: Add index 'i' to the forEach callback and rely only on DataURLs
+        [...files].forEach((file, i) => { // <-- Corrected line
             if (!(file.type === 'image/jpeg' || file.type === 'image/jpg')) {
                 alert(`File "${file.name}" is not a JPEG image and will be ignored.`);
                 console.warn(`Skipping non-JPEG file: ${file.name}`);
@@ -260,7 +248,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }).catch(error => {
                 console.error(`[handleFiles] Failed to load original Data URL for "${file.name}":`, error);
                 fileEntry.status = 'failed';
-                fileEntry.originalUrl = FALLBACK_IMAGE_URL; // Use fallback on failure
+                fileEntry.originalUrl = FALLBACK_IMAGE_DATA_URL; // Use fallback on failure
                 updateImagePairResult(fileEntry);
             });
 
@@ -396,7 +384,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     return;
                 }
                 
-                if (compressedDataUrl.length < 50 || compressedDataUrl.startsWith('data:,') || compressedDataUrl.includes('iVBORw0KGgoAAAANSUlH') /* Check for tiny PNGs */ ) { 
+                if (compressedDataUrl.length < 50 || compressedDataUrl.startsWith('data:,') || compressedDataUrl.includes('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=')) { 
                     console.warn(`[compressImageClientSide] Canvas.toDataURL returned potentially blank/invalid data for "${filename}" (quality: ${quality}). Length: ${compressedDataUrl.length}. Trying PNG fallback.`);
                     try {
                         const pngDataUrl = canvas.toDataURL('image/png');
@@ -478,7 +466,6 @@ document.addEventListener('DOMContentLoaded', () => {
             // Wait for originalUrl to be ready for this specific file
             let originalDataUrl = null;
             try {
-                // originalUrlPromise is now a promise from FileReader directly
                 originalDataUrl = await fileEntry.originalUrlPromise; 
                 fileEntry.originalUrl = originalDataUrl; // Set it definitively on fileEntry
                 if (fileEntry.status !== 'failed') { // If FileReader already failed, don't override status
@@ -487,7 +474,7 @@ document.addEventListener('DOMContentLoaded', () => {
             } catch (loadError) {
                 console.error(`[initiateCompression] Original Data URL load failed for "${fileEntry.file.name}":`, loadError);
                 fileEntry.status = 'failed';
-                fileEntry.originalUrl = FALLBACK_IMAGE_URL; // Ensure it's null if failed
+                fileEntry.originalUrl = FALLBACK_IMAGE_DATA_URL; // Ensure it's null if failed
                 updateImagePairResult(fileEntry); // Update UI to failed state
             }
 
@@ -1017,7 +1004,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Images (modalOriginalImage, modalCompressedImage) stay loaded in memory, which is efficient.
     }
 
-    // --- Event Listeners for Modal (unchanged) ---
+    // --- Event Listeners for Modal ---
     closeButton.addEventListener('click', hideModalComparison);
     // Close modal if user clicks outside of the modal content
     comparisonModal.addEventListener('click', (e) => {
